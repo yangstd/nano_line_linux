@@ -17,19 +17,6 @@
 #include "GenApi.h" //!< GenApi lib definitions.
 #include "gevapi.h" //!< GEV lib definitions.
 
-#ifdef __cplusplus
-extern "C"
-{
-#include "SapX11Util.h"
-#include "X_Display_utils.h"
-#include "FileUtil.h"
-#include "sched.h"
-}
-#endif
-
-#include "SapX11Util.h"
-#include "X_Display_utils.h"
-#include "FileUtil.h"
 #include "sched.h"
 
 #include <thread>

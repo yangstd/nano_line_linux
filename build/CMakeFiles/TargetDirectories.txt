@@ -1,3 +1,0 @@
-/home/yangstd/Desktop/test_nano_line/build/CMakeFiles/rebuild_cache.dir
-/home/yangstd/Desktop/test_nano_line/build/CMakeFiles/test_nano_line.dir
-/home/yangstd/Desktop/test_nano_line/build/CMakeFiles/edit_cache.dir
