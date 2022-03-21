@@ -1,3 +1,0 @@
-/home/helloworld/source/Fingerprint/nano_line_linux/build/CMakeFiles/rebuild_cache.dir
-/home/helloworld/source/Fingerprint/nano_line_linux/build/CMakeFiles/test_nano_line.dir
-/home/helloworld/source/Fingerprint/nano_line_linux/build/CMakeFiles/edit_cache.dir
