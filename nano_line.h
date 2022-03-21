@@ -17,6 +17,7 @@
 #include "GenApi.h" //!< GenApi lib definitions.
 #include "gevapi.h" //!< GEV lib definitions.
 
+#include "X_Display_utils.h"
 #include "sched.h"
 
 #include <thread>
