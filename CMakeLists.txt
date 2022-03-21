@@ -60,6 +60,7 @@ MESSAGE("GenICam_INCLUDE_DIRS:  ${GenICam_INCLUDE_DIRS}")
 
 # 设定头文件目录
 include_directories(${PROJECT_SOURCE_DIR} 
+                    ${PROJECT_SOURCE_DIR}/common
                     ${OpenCV_INCLUDE_DIRS}
                     ${FFmpeg_INCLUDE_DIR}
                     ${GenICam_INCLUDE_DIRS}
@@ -70,7 +71,8 @@ include_directories(${PROJECT_SOURCE_DIR}
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # 查找当前目录下的所有源文件
-aux_source_directory(./ DIR_SRCS)
+aux_source_directory(. DIR_SRCS)
+aux_source_directory(./common RR)
 
 
 # 设定输出文件生成目录
@@ -90,7 +92,7 @@ aux_source_directory(./ DIR_SRCS)
 # 生成二进制文件
 # 添加一个可执行程序, 务必 要放在 link_directories 后面； 要放在 target_link_libraries 前面。
 # 语法 : add_executable( 程序名 源代码文件 )
-add_executable( ${PROJECT_NAME}  ${DIR_SRCS})
+add_executable( ${PROJECT_NAME}  ${DIR_SRCS} ${RR})
 
 
 # 需要链接的库文件
