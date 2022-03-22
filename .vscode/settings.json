@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "thread": "cpp"
+        "thread": "cpp",
+        "atomic": "cpp",
+        "cstdint": "cpp"
     }
 }

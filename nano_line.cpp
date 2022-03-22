@@ -9,6 +9,10 @@
 
 #define ENABLE_BAYER_CONVERSION 1
 
+#define USE_SYNCHRONOUS_BUFFER_CYCLING 0
+
+#define TUNE_STREAMING_THREADS 0
+
 NanoLine::NanoLine()
 {
 }
@@ -42,11 +46,10 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 
     vec_param_nano_line.clear();
 
-    ParamNanoLine param_nano_line;
+    ParamNanoLine param_nano_line = {{0}, NULL, 0, 0, 0, 0, 0, 0, NUM_BUF, NULL};
 
     for (uint16_t i = 0; i < numCamera; i++)
     {
-
         param_nano_line.nano_line_interface = pCamera[i];
 
         vec_param_nano_line.emplace_back(param_nano_line);
@@ -57,89 +60,38 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 
 bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 {
-    int type = 0;
-    UINT64 size = 0;
+
     param_nano_line = param_nano_line_in;
 
-    status = GevOpenCamera(&param_nano_line.nano_line_interface, GevExclusiveMode, &param_nano_line.handle);
-
-    if (status == 0)
+    if (!initOpenCamera())
     {
-        char xmlFileName[MAX_PATH] = {0};
-        status = GevGetGenICamXML_FileName(param_nano_line.handle, (int)sizeof(xmlFileName), xmlFileName);
-        if (status == GEVLIB_OK)
-        {
-            printf("XML stored as %s\n", xmlFileName);
-        }
-        status = GEVLIB_OK;
+        std::printf("Open the Camera error! \n");
+        return false;
     }
 
-    printf("status (xml): %d. \n", status);
-
-    if (status == 0)
+    if (!initInterfaceOptions())
     {
-        GEV_CAMERA_OPTIONS camOptions = {0};
-        GevGetCameraInterfaceOptions(param_nano_line.handle, &camOptions);
-        camOptions.heartbeat_timeout_ms = 5000;
-
-        GevSetCameraInterfaceOptions(param_nano_line.handle, &camOptions);
-    }
-    printf("status (option): %d. \n", status);
-
-    GenApi::CNodeMapRef *Camera = static_cast<GenApi::CNodeMapRef *>(GevGetFeatureNodeMap(param_nano_line.handle));
-
-    if (Camera)
-    {
-        // Access some features using the bare GenApi interface methods
-        try
-        {
-            // Mandatory features....
-            GenApi::CIntegerPtr ptrIntNode = Camera->_GetNode("Width");
-            param_nano_line.width = (UINT32)ptrIntNode->GetValue();
-
-            ptrIntNode = Camera->_GetNode("Height");
-            param_nano_line.height = (UINT32)ptrIntNode->GetValue();
-
-            ptrIntNode = Camera->_GetNode("PayloadSize");
-            param_nano_line.payload_size = (UINT64)ptrIntNode->GetValue();
-
-            GenApi::CEnumerationPtr ptrEnumNode = Camera->_GetNode("PixelFormat");
-            param_nano_line.format = (UINT32)ptrEnumNode->GetIntValue();
-        }
-        // Catch all possible exceptions from a node access.
-        CATCH_GENAPI_ERROR(status);
+        std::printf("Set the Camera Interface Options error! \n");
+        return false;
     }
 
-    printf("status (camera): %d. \n", status);
-
-    if (status == 0)
+    if (!initImageParameters())
     {
-        printf("Camera ROI set for \n \t Height = %d\n\t Width = %d\n\t PixelFormat (val) = 0x%08x\n", param_nano_line.height, param_nano_line.width, param_nano_line.format);
-
-        maxHeight = param_nano_line.height;
-        maxWidth = param_nano_line.width;
-        maxDepth = GetPixelSizeInBytes(param_nano_line.format);
-
-        size = maxDepth * maxWidth * maxHeight;
-        size = (param_nano_line.payload_size > size) ? param_nano_line.payload_size : size;
-
-        for (uint16_t i = 0; i < param_nano_line.numBuffers; i++)
-        {
-
-            param_nano_line.bufAddress[i] = (PUINT8)malloc(size);
-            memset(param_nano_line.bufAddress[i], 0, size);
-        }
+        std::printf("Get the Camper Image Parameters error! \n");
+        return false;
     }
 
-    printf("status (size): %d. \n", status);
+    if (!initTransfer())
+    {
+        std::printf("Set the Camera Initialize Transfer error!\n");
+        return false;
+    }
 
-    status = GevInitializeTransfer(param_nano_line.handle, Asynchronous, size, param_nano_line.numBuffers, param_nano_line.bufAddress);
-
-    printf("status (asyn): %d. \n", status);
-
-    status = GevStartTransfer(param_nano_line.handle, -1);
-
-    printf("status (sfer): %d. \n", status);
+    if (!initStartTransfer())
+    {
+        std::printf("initStartTransfer error!\n");
+        return false;
+    }
 
     return true;
 }
@@ -183,6 +135,129 @@ bool NanoLine::getData(cv::Mat &img)
     if (_img != NULL && status == GEVLIB_OK)
     {
         img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);
+    }
+
+    return true;
+}
+
+bool NanoLine::initOpenCamera()
+{
+    status = GevOpenCamera(&param_nano_line.nano_line_interface, GevExclusiveMode, &param_nano_line.handle);
+
+    if (status != 0)
+    {
+        std::printf("Error GevOpenCamera - 0x%x  or %d\n", status, status);
+        return false;
+    }
+    return true;
+}
+
+bool NanoLine::initInterfaceOptions()
+{
+    if (status == 0)
+    {
+        DALSA_GENICAM_GIGE_REGS reg = {0};
+        GEV_CAMERA_OPTIONS camOptions = {0};
+        GevGetCameraInterfaceOptions(param_nano_line.handle, &camOptions);
+        camOptions.heartbeat_timeout_ms = 5000; // Disconnect detection (5 seconds)
+#if TUNE_STREAMING_THREADS
+        // Some tuning can be done here. (see the manual)
+        camOptions.streamFrame_timeout_ms = 1001;           // Internal timeout for frame reception.
+        camOptions.streamNumFramesBuffered = 4;             // Buffer frames internally.
+        camOptions.streamMemoryLimitMax = 64 * 1024 * 1024; // Adjust packet memory buffering limit.
+        camOptions.streamPktSize = 9180;                    // Adjust the GVSP packet size.
+        camOptions.streamPktDelay = 10;                     // Add usecs between packets to pace arrival at NIC.
+        // Assign specific CPUs to threads (affinity) - if required for better performance.
+        {
+            int numCpus = _GetNumCpus();
+            if (numCpus > 1)
+            {
+                camOptions.streamThreadAffinity = numCpus - 1;
+                camOptions.serverThreadAffinity = numCpus - 2;
+            }
+        }
+#endif
+        // Write the adjusted interface options back.
+        GevSetCameraInterfaceOptions(param_nano_line.handle, &camOptions);
+
+        //=================================================================
+        // Get the camera registers data structure
+        GevGetCameraRegisters(param_nano_line.handle, &reg, sizeof(reg));
+
+        //=================================================================
+        // Set up a grab/transfer from this camera
+        //
+    }
+    else
+    {
+        std::printf("Error initInterfaceOptions - 0x%x  or %d\n", status, status);
+        return false;
+    }
+
+    return true;
+}
+
+bool NanoLine::initImageParameters()
+{
+    status = GevGetImageParameters(param_nano_line.handle, &param_nano_line.width, &param_nano_line.height, &param_nano_line.x_offset, &param_nano_line.y_offset, &param_nano_line.format);
+    if (status == 0)
+    {
+
+        std::printf("Camera ROI set for \n\theight = %d\n\twidth = %d\n\tx offset = %d\n\ty offset = %d, pixel format = 0x%08x\n", param_nano_line.height, param_nano_line.width, param_nano_line.x_offset, param_nano_line.y_offset, param_nano_line.format);
+
+        maxHeight = param_nano_line.height;
+        maxWidth = param_nano_line.width;
+        maxDepth = GetPixelSizeInBytes(param_nano_line.format);
+
+        // Allocate image buffers
+        size = maxDepth * maxWidth * maxHeight;
+        for (i = 0; i < param_nano_line.numBuffers; i++)
+        {
+            param_nano_line.bufAddress[i] = (PUINT8)malloc(size);
+            memset(param_nano_line.bufAddress[i], 0, size);
+        }
+    }
+    else
+    {
+        std::printf("Error GevGetImageParametersr - 0x%x  or %d\n", status, status);
+        return false;
+    }
+
+    return true;
+}
+
+bool NanoLine::initTransfer()
+{
+#if USE_SYNCHRONOUS_BUFFER_CYCLING
+    // Initialize a transfer with synchronous buffer handling.
+    status = GevInitializeTransfer(param_nano_line.handle, SynchronousNextEmpty, size, param_nano_line.numBuffers, bufAddress);
+#else
+    // Initialize a transfer with asynchronous buffer handling.
+    status = GevInitializeTransfer(param_nano_line.handle, Asynchronous, size, param_nano_line.numBuffers, param_nano_line.bufAddress);
+
+    if (status != 0)
+    {
+        std::printf("Error GevInitializeTransfer - 0x%x  or %d\n", status, status);
+        return false;
+    }
+
+#endif
+    return true;
+}
+
+bool NanoLine::initStartTransfer()
+{
+    for (i = 0; i < param_nano_line.numBuffers; i++)
+    {
+        memset(param_nano_line.bufAddress[i], 0, size);
+    }
+
+    status = GevStartTransfer(param_nano_line.handle, -1);
+
+    if (status != 0)
+    {
+        std::printf("Error starting grab - 0x%x  or %d\n", status, status);
+        return false;
     }
 
     return true;

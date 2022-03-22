@@ -6,8 +6,6 @@
 
 // TODO: 在此处引用程序需要的其他标头。
 
-#include "stdio.h"
-
 #ifndef OPENCVINCFLAG
 #define OPENCVINCFLAG
 #include "opencv2/opencv.hpp"
@@ -16,20 +14,20 @@
 #include "cordef.h"
 #include "GenApi.h" //!< GenApi lib definitions.
 #include "gevapi.h" //!< GEV lib definitions.
-
+#include "SapX11Util.h"
 #include "X_Display_utils.h"
 #include "sched.h"
 
 #include <thread>
 #include <vector>
 
-#define PATH_CONFIG "../config.txt"
-
-#define NUM_BUF 8
-
 #define MAX_NETIF 8
 #define MAX_CAMERAS_PER_NETIF 32
 #define MAX_CAMERAS (MAX_NETIF * MAX_CAMERAS_PER_NETIF)
+
+#define USE_SYNCHRONOUS_BUFFER_CYCLING 0
+
+#define NUM_BUF 8
 
 typedef struct tagMY_CONTEXT
 {
@@ -45,18 +43,18 @@ typedef struct tagMY_CONTEXT
 struct ParamNanoLine
 {
 
-    GEV_DEVICE_INTERFACE nano_line_interface = {0};
-    GEV_CAMERA_HANDLE handle = NULL;
+    GEV_DEVICE_INTERFACE nano_line_interface;
+    GEV_CAMERA_HANDLE handle;
 
-    UINT32 height = 0;
-    UINT32 width = 0;
-    UINT32 format = 0;
+    uint32_t width;
+    uint32_t height;
+    uint32_t x_offset;
+    uint32_t y_offset;
+    uint32_t format;
 
-    UINT64 payload_size;
-    int numBuffers = NUM_BUF;
-    PUINT8 bufAddress[NUM_BUF] = {nullptr};
-
-    std::string file_config = PATH_CONFIG;
+    uint64_t payload_size;
+    int numBuffers;
+    PUINT8 bufAddress[NUM_BUF];
 };
 
 // fourth floor : design class and header files
@@ -73,6 +71,11 @@ public:
     bool getData(cv::Mat &img);
 
 private:
+    bool initOpenCamera();
+    bool initInterfaceOptions();
+    bool initImageParameters();
+    bool initTransfer();
+    bool initStartTransfer();
     void ImageTakeThread();
 
 private:
@@ -81,12 +84,16 @@ private:
     GEV_STATUS status;
     GEV_BUFFER_OBJECT *_img = NULL;
 
+    uint16_t i;
+    uint32_t maxHeight = 1600;
+    uint32_t maxWidth = 2048;
+    uint32_t maxDepth = 2;
+    uint64_t size = 0;
+
     std::thread tid;
     bool tid_flag = false;
-    UINT32 pixFormat = 0;
-    UINT32 pixDepth;
-    UINT32 convertedGevFormat = 0;
-    UINT32 maxHeight = 1600;
-    UINT32 maxWidth = 2048;
-    UINT32 maxDepth = 2;
+
+    uint32_t pixFormat = 0;
+    uint32_t pixDepth;
+    uint32_t convertedGevFormat = 0;
 };
