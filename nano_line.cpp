@@ -22,13 +22,6 @@ NanoLine::~NanoLine()
     stop();
 }
 
-/**
- * @brief
- *
- * @param vec_param_nano_line
- * @return true
- * @return false
- */
 bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 {
     int numCamera = 0;
