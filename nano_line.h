@@ -94,6 +94,6 @@ private:
     bool tid_flag = false;
 
     uint32_t pixFormat = 0;
-    uint32_t pixDepth;
+    uint32_t pixDepth = 0;
     uint32_t convertedGevFormat = 0;
 };
