@@ -89,7 +89,7 @@ private:
     uint32_t maxDepth = 2;
     uint64_t size = 0;
 
-    uint64_t payload_size;
+    uint64_t payload_size = 0;
     uint32_t numBuffers = NUM_BUF;
     PUINT8 bufAddress[NUM_BUF];
 
