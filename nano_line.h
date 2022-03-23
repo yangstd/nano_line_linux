@@ -81,7 +81,7 @@ private:
 private:
     ParamNanoLine param_nano_line;
 
-    GEV_STATUS status;
+    GEV_STATUS status = 0;
     GEV_BUFFER_OBJECT *_img = NULL;
 
     uint32_t maxHeight = 1600;

@@ -24,6 +24,8 @@ NanoLine::~NanoLine()
 
 bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 {
+    vec_param_nano_line.clear();
+
     int numCamera = 0;
     GEV_STATUS status = 0;
     GEV_DEVICE_INTERFACE pCamera[MAX_CAMERAS] = {0};
@@ -36,8 +38,6 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
         std::printf("nano line find device failed \n");
         return false;
     }
-
-    vec_param_nano_line.clear();
 
     ParamNanoLine param_nano_line;
 
@@ -55,7 +55,6 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 
 bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 {
-
     param_nano_line = param_nano_line_in;
 
     std::printf("%s.\n", param_nano_line.device_name.c_str());
