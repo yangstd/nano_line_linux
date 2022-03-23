@@ -18,8 +18,10 @@
 #include "X_Display_utils.h"
 #include "sched.h"
 
-#include <thread>
 #include <vector>
+#include <string>
+#include <thread>
+#include <mutex>
 
 #define MAX_NETIF 8
 #define MAX_CAMERAS_PER_NETIF 32
@@ -45,6 +47,8 @@ struct ParamNanoLine
 
     GEV_DEVICE_INTERFACE nano_line_interface;
     GEV_CAMERA_HANDLE handle;
+
+    std::string serive_name;
 
     uint32_t width;
     uint32_t height;
@@ -92,6 +96,7 @@ private:
 
     std::thread tid;
     bool tid_flag = false;
+    std::mutex mtx;
 
     uint32_t pixFormat = 0;
     uint32_t pixDepth;

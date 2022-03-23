@@ -22,13 +22,6 @@ NanoLine::~NanoLine()
     stop();
 }
 
-/**
- * @brief
- *
- * @param vec_param_nano_line
- * @return true
- * @return false
- */
 bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 {
     int numCamera = 0;
@@ -96,6 +89,54 @@ bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
     return true;
 }
 
+void NanoLine::ImageTakeThread()
+{
+    // std::unique_lock<std::mutex> lock(mtx);
+    // While we are still running.
+    while (tid_flag)
+    {
+        // Wait for images to be received
+
+        status = GevWaitForNextImage(param_nano_line.handle, &_img, 1000);
+
+        if (status == 0)
+        {
+            std::printf("timeout...\n");
+            GevStopTransfer(param_nano_line.handle);
+            GevAbortTransfer(param_nano_line.handle);
+            GevFreeTransfer(param_nano_line.handle);
+            if (!initOpenCamera())
+            {
+                std::printf("Open the Camera error! \n");
+                break;
+            }
+
+            if (!initInterfaceOptions())
+            {
+                std::printf("Set the Camera Interface Options error! \n");
+                break;
+            }
+
+            if (!initImageParameters())
+            {
+                std::printf("Get the Camper Image Parameters error! \n");
+            }
+
+            if (!initTransfer())
+            {
+                std::printf("Set the Camera Initialize Transfer error!\n");
+                break;
+            }
+
+            if (!initStartTransfer())
+            {
+                std::printf("initStartTransfer error!\n");
+                break;
+            }
+        }
+    }
+}
+
 bool NanoLine::start()
 {
     tid_flag = true;
@@ -132,9 +173,14 @@ bool NanoLine::stop()
 
 bool NanoLine::getData(cv::Mat &img)
 {
+    // std::unique_lock<std::mutex> lock(mtx);
+
     if (_img != NULL && status == GEVLIB_OK)
     {
-        img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);
+        if (_img->state == 0)
+        {
+            img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);
+        }
     }
 
     return true;
@@ -261,22 +307,4 @@ bool NanoLine::initStartTransfer()
     }
 
     return true;
-}
-
-void NanoLine::ImageTakeThread()
-{
-    // While we are still running.
-    while (tid_flag)
-    {
-        // Wait for images to be received
-        status = GevWaitForNextImage(param_nano_line.handle, &_img, 1000);
-        // if (_img != NULL && status == GEVLIB_OK)
-        // {
-        //     cv::Mat Img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);
-        //     if (Img.empty())
-        //         continue;
-        //     cv::imshow("demo", Img);
-        //     cv::waitKey(10);
-        // }
-    }
 }
