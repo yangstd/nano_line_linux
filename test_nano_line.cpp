@@ -17,19 +17,28 @@ int main(int argc, const char *argv[])
     ParamNanoLine param_nano_line = vec_param_nano_line[0];
 
     NanoLine nano_line;
-    if (!nano_line.init(param_nano_line))
-        return -1;
-    nano_line.start();
+    // const char *p_device_name = "H0010821";
+    // const char *p_device_name = "12112993";
+    const char *p_device_name = "12226901";
 
-    cv::Mat img;
-    while (true)
+    for (uint16_t i = 0; i < vec_param_nano_line.size(); i++)
     {
-        nano_line.getData(img);
-        if (img.empty())
-            continue;
-        cv::imshow("demo", img);
-        cv::waitKey(10);
-    }
+        if (param_nano_line.device_name == p_device_name)
+        {
+            if (!nano_line.init(param_nano_line))
+                return -1;
+            nano_line.start();
 
+            cv::Mat img;
+            while (true)
+            {
+                nano_line.getData(img);
+                if (img.empty())
+                    continue;
+                cv::imshow("demo", img);
+                cv::waitKey(10);
+            }
+        }
+    }
     return 0;
 }

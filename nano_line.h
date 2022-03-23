@@ -22,6 +22,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
 
 #define MAX_NETIF 8
 #define MAX_CAMERAS_PER_NETIF 32
@@ -44,11 +45,7 @@ typedef struct tagMY_CONTEXT
 
 struct ParamNanoLine
 {
-
-    GEV_DEVICE_INTERFACE nano_line_interface;
-    GEV_CAMERA_HANDLE handle;
-
-    std::string serive_name;
+    std::string device_name;
 
     uint32_t width;
     uint32_t height;
@@ -56,9 +53,8 @@ struct ParamNanoLine
     uint32_t y_offset;
     uint32_t format;
 
-    uint64_t payload_size;
-    int numBuffers;
-    PUINT8 bufAddress[NUM_BUF];
+    GEV_DEVICE_INTERFACE nano_line_interface;
+    GEV_CAMERA_HANDLE handle;
 };
 
 // fourth floor : design class and header files
@@ -88,15 +84,19 @@ private:
     GEV_STATUS status;
     GEV_BUFFER_OBJECT *_img = NULL;
 
-    uint16_t i;
     uint32_t maxHeight = 1600;
     uint32_t maxWidth = 2048;
     uint32_t maxDepth = 2;
     uint64_t size = 0;
 
+    uint64_t payload_size;
+    uint32_t numBuffers = NUM_BUF;
+    PUINT8 bufAddress[NUM_BUF];
+
     std::thread tid;
     bool tid_flag = false;
     std::mutex mtx;
+    std::condition_variable cova;
 
     uint32_t pixFormat = 0;
     uint32_t pixDepth;

@@ -39,10 +39,12 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
 
     vec_param_nano_line.clear();
 
-    ParamNanoLine param_nano_line = {{0}, NULL, 0, 0, 0, 0, 0, 0, NUM_BUF, NULL};
+    ParamNanoLine param_nano_line;
 
     for (uint16_t i = 0; i < numCamera; i++)
     {
+        param_nano_line.device_name = pCamera[i].serial;
+
         param_nano_line.nano_line_interface = pCamera[i];
 
         vec_param_nano_line.emplace_back(param_nano_line);
@@ -55,6 +57,8 @@ bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 {
 
     param_nano_line = param_nano_line_in;
+
+    std::printf("%s.\n", param_nano_line.device_name.c_str());
 
     if (!initOpenCamera())
     {
@@ -91,47 +95,49 @@ bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 
 void NanoLine::ImageTakeThread()
 {
-    // std::unique_lock<std::mutex> lock(mtx);
     // While we are still running.
     while (tid_flag)
     {
+        std::unique_lock<std::mutex> lock(mtx);
         // Wait for images to be received
-
         status = GevWaitForNextImage(param_nano_line.handle, &_img, 1000);
 
-        if (status == 0)
+        cova.notify_one();
+        if (status)
         {
             std::printf("timeout...\n");
             GevStopTransfer(param_nano_line.handle);
             GevAbortTransfer(param_nano_line.handle);
             GevFreeTransfer(param_nano_line.handle);
+            GevSetImageParameters(param_nano_line.handle, maxWidth, maxHeight, param_nano_line.x_offset, param_nano_line.y_offset, param_nano_line.format);
             if (!initOpenCamera())
             {
                 std::printf("Open the Camera error! \n");
-                break;
+                continue;
             }
 
             if (!initInterfaceOptions())
             {
                 std::printf("Set the Camera Interface Options error! \n");
-                break;
+                continue;
             }
 
             if (!initImageParameters())
             {
                 std::printf("Get the Camper Image Parameters error! \n");
+                continue;
             }
 
             if (!initTransfer())
             {
                 std::printf("Set the Camera Initialize Transfer error!\n");
-                break;
+                continue;
             }
 
             if (!initStartTransfer())
             {
                 std::printf("initStartTransfer error!\n");
-                break;
+                continue;
             }
         }
     }
@@ -162,21 +168,25 @@ bool NanoLine::stop()
         GevFreeTransfer(param_nano_line.handle);
         GevCloseCamera(&param_nano_line.handle);
     }
-    for (int i = 0; i < param_nano_line.numBuffers; i++)
+    for (uint16_t i = 0; i < numBuffers; i++)
     {
-        if (param_nano_line.bufAddress[i] != NULL)
-            free(param_nano_line.bufAddress[i]);
+        if (bufAddress[i] != NULL)
+            free(bufAddress[i]);
     }
     printf("cam stop get data!\n");
+    GevApiUninitialize();
+    _CloseSocketAPI();
+
     return true;
 }
 
 bool NanoLine::getData(cv::Mat &img)
 {
-    // std::unique_lock<std::mutex> lock(mtx);
+    std::unique_lock<std::mutex> lock(mtx);
 
     if (_img != NULL && status == GEVLIB_OK)
     {
+        cova.wait(lock);
         if (_img->state == 0)
         {
             img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);
@@ -257,10 +267,10 @@ bool NanoLine::initImageParameters()
 
         // Allocate image buffers
         size = maxDepth * maxWidth * maxHeight;
-        for (i = 0; i < param_nano_line.numBuffers; i++)
+        for (uint16_t i = 0; i < numBuffers; i++)
         {
-            param_nano_line.bufAddress[i] = (PUINT8)malloc(size);
-            memset(param_nano_line.bufAddress[i], 0, size);
+            bufAddress[i] = (PUINT8)malloc(size);
+            memset(bufAddress[i], 0, size);
         }
     }
     else
@@ -276,10 +286,10 @@ bool NanoLine::initTransfer()
 {
 #if USE_SYNCHRONOUS_BUFFER_CYCLING
     // Initialize a transfer with synchronous buffer handling.
-    status = GevInitializeTransfer(param_nano_line.handle, SynchronousNextEmpty, size, param_nano_line.numBuffers, bufAddress);
+    status = GevInitializeTransfer(param_nano_line.handle, SynchronousNextEmpty, size, numBuffers, bufAddress);
 #else
     // Initialize a transfer with asynchronous buffer handling.
-    status = GevInitializeTransfer(param_nano_line.handle, Asynchronous, size, param_nano_line.numBuffers, param_nano_line.bufAddress);
+    status = GevInitializeTransfer(param_nano_line.handle, Asynchronous, size, numBuffers, bufAddress);
 
     if (status != 0)
     {
@@ -293,9 +303,9 @@ bool NanoLine::initTransfer()
 
 bool NanoLine::initStartTransfer()
 {
-    for (i = 0; i < param_nano_line.numBuffers; i++)
+    for (uint16_t i = 0; i < numBuffers; i++)
     {
-        memset(param_nano_line.bufAddress[i], 0, size);
+        memset(bufAddress[i], 0, size);
     }
 
     status = GevStartTransfer(param_nano_line.handle, -1);
