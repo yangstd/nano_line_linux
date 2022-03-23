@@ -99,6 +99,6 @@ private:
     std::condition_variable cova;
 
     uint32_t pixFormat = 0;
-    uint32_t pixDepth;
+    uint32_t pixDepth = 0;
     uint32_t convertedGevFormat = 0;
 };
