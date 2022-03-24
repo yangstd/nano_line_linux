@@ -94,14 +94,12 @@ bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 
 void NanoLine::ImageTakeThread()
 {
-    std::unique_lock<std::mutex> lock(mtx);
     // While we are still running.
     while (tid_flag)
     {
         // Wait for images to be received
         status = GevWaitForNextImage(param_nano_line.handle, &_img, 1000);
 
-        // cova.notify_one();
         if (status)
         {
             std::printf("timeout...\n");
