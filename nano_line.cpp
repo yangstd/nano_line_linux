@@ -97,11 +97,11 @@ void NanoLine::ImageTakeThread()
     // While we are still running.
     while (tid_flag)
     {
-        std::unique_lock<std::mutex> lock(mtx);
+        // std::unique_lock<std::mutex> lock(mtx);
         // Wait for images to be received
         status = GevWaitForNextImage(param_nano_line.handle, &_img, 1000);
 
-        cova.notify_one();
+        // cova.notify_one();
         if (status)
         {
             std::printf("timeout...\n");
@@ -185,7 +185,7 @@ bool NanoLine::getData(cv::Mat &img)
 
     if (_img != NULL && status == GEVLIB_OK)
     {
-        cova.wait(lock);
+        // cova.wait(lock);
         if (_img->state == 0)
         {
             img = cv::Mat(_img->h, _img->w, CV_8UC1, _img->address);

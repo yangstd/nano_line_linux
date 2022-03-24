@@ -84,8 +84,8 @@ private:
     GEV_STATUS status = 0;
     GEV_BUFFER_OBJECT *_img = NULL;
 
-    uint32_t maxHeight = 1600;
-    uint32_t maxWidth = 2048;
+    uint32_t maxHeight = 1920;
+    uint32_t maxWidth = 1080;
     uint32_t maxDepth = 2;
     uint64_t size = 0;
 
@@ -97,8 +97,4 @@ private:
     bool tid_flag = false;
     std::mutex mtx;
     std::condition_variable cova;
-
-    uint32_t pixFormat = 0;
-    uint32_t pixDepth = 0;
-    uint32_t convertedGevFormat = 0;
 };

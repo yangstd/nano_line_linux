@@ -21,22 +21,22 @@ int main(int argc, const char *argv[])
     // const char *p_device_name = "12112993";
     const char *p_device_name = "12226901";
 
-    if (param_nano_line.device_name == p_device_name)
-    {
-        if (!nano_line.init(param_nano_line))
-            return -1;
-        nano_line.start();
+    // if (param_nano_line.device_name == p_device_name)
+    // {
+    if (!nano_line.init(param_nano_line))
+        return -1;
+    nano_line.start();
 
-        cv::Mat img;
-        while (true)
-        {
-            nano_line.getData(img);
-            if (img.empty())
-                continue;
-            cv::imshow("demo", img);
-            cv::waitKey(10);
-        }
+    cv::Mat img;
+    while (true)
+    {
+        nano_line.getData(img);
+        if (img.empty())
+            continue;
+        cv::imshow("demo", img);
+        cv::waitKey(10);
     }
+    // }
 
     return 0;
 }
