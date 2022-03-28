@@ -95,6 +95,7 @@ bool NanoLine::init(const ParamNanoLine &param_nano_line_in)
 void NanoLine::ImageTakeThread()
 {
     // While we are still running.
+    // std::unique_lock<std::mutex> lock(mtx);
     while (tid_flag)
     {
         // Wait for images to be received

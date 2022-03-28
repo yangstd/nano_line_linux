@@ -96,5 +96,5 @@ private:
     std::thread tid;
     bool tid_flag = false;
     std::mutex mtx;
-    std::condition_variable cova;
+    std::condition_variable cva;
 };
