@@ -5,7 +5,7 @@
 #include <vector>
 
 // the third floor： Design the main function
-int main(int argc, const char *argv[])
+int main(int argc, char const *argv[])
 {
     std::vector<ParamNanoLine> vec_param_nano_line;
     if (!NanoLine::findDevices(vec_param_nano_line))
