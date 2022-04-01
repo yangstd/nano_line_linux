@@ -45,6 +45,9 @@ bool NanoLine::findDevices(std::vector<ParamNanoLine> &vec_param_nano_line)
     {
         param_nano_line.device_name = pCamera[i].serial;
 
+        std::printf("serial: %s.\n", pCamera[i].serial);
+        std::printf("username: %s.\n", pCamera[i].username);
+
         param_nano_line.nano_line_interface = pCamera[i];
 
         vec_param_nano_line.emplace_back(param_nano_line);
@@ -195,14 +198,18 @@ bool NanoLine::getData(cv::Mat &img)
 
 bool NanoLine::initOpenCamera()
 {
-    status = GevOpenCamera(&param_nano_line.nano_line_interface, GevExclusiveMode, &param_nano_line.handle);
+    // status = GevOpenCamera(&param_nano_line.nano_line_interface, GevExclusiveMode, &param_nano_line.handle);
+    if (!GevOpenCameraBySN("12226901", GevExclusiveMode, &param_nano_line.handle))
+    {
+        std::printf("aa\n");
+        return true;
+    }
 
     if (status != 0)
     {
         std::printf("Error GevOpenCamera - 0x%x  or %d\n", status, status);
         return false;
     }
-    return true;
 }
 
 bool NanoLine::initInterfaceOptions()
